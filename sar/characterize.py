@@ -13,7 +13,7 @@ These are the same metrics measured in Cadence post-layout simulation
 or on a real ADC test bench.
 
 Author: Sugandh Mittal
-Date Modified: 25 February 2026
+Date Modified: 25 February 2026 (Edit 1: 03 March 2026)
 """
 
 import numpy as np
@@ -25,6 +25,8 @@ def compute_fft(codes, n_bits, fs=1.0, coherent=True):
 
     For coherent sampling use rectangular window, no spectral leakage.
     For non-coherent signals set coherent=False to apply Hanning window.
+    (w[n] = 0.5 * (1 - cos(2π n / N)). This ensures that if there is any
+    discontinuity, the signal power doesn't leak and get counted as noise.)
 
     :param codes: Digital output codes from the ADC
     :type codes: np.ndarray
@@ -34,8 +36,8 @@ def compute_fft(codes, n_bits, fs=1.0, coherent=True):
     :type fs: float
     :param coherent: If True use rectangular window, if False use Hanning
     :type coherent: bool
-    :return: Tuple of (frequency axis in Hz, power spectrum in dBFS)
-    :rtype: tuple(np.ndarray, np.ndarray)
+    :return: Tuple of (frequency axis in Hz, power spectrum in dBFS, linear power spectrum)
+    :rtype: tuple(np.ndarray, np.ndarray, np.ndarray)
     """
     N = len(codes)
     normalized = codes / (2 ** (n_bits - 1)) - 1.0
@@ -53,33 +55,22 @@ def compute_fft(codes, n_bits, fs=1.0, coherent=True):
     power_db = 10 * np.log10(power + 1e-300)
     freqs = np.fft.rfftfreq(N, d=1.0 / fs)
 
-    return freqs, power_db
+    return freqs, power_db, power
 
 
-def compute_sndr(codes, n_bits, signal_bin=None):
+def compute_sndr(power, signal_bin=None):
     """
     Compute SNDR (Signal-to-Noise and Distortion Ratio) in dBFS.
 
     SNDR = 10 * log10(signal_power / (noise + distortion power))
 
-    Uses rectangular window assuming coherent sampling.
-    Fundamental tone bin is auto-detected or supplied manually.
-
-    :param codes: Digital output codes from the ADC
-    :type codes: np.ndarray
-    :param n_bits: ADC resolution
-    :type n_bits: int
+    :param power: Linear power spectrum from compute_fft
+    :type power: np.ndarray
     :param signal_bin: FFT bin of fundamental tone, auto-detected if None
     :type signal_bin: int, optional
     :return: Tuple of (SNDR in dBFS, detected signal bin index)
     :rtype: tuple(float, int)
     """
-
-    N = len(codes)
-    normalized = codes / (2 ** (n_bits - 1)) - 1.0
-
-    spectrum = np.fft.rfft(normalized)
-    power = np.abs(spectrum) ** 2
 
     if signal_bin is None:
         # Find the peak bin (skip DC at bin 0)
@@ -94,27 +85,20 @@ def compute_sndr(codes, n_bits, signal_bin=None):
     return sndr_db, signal_bin
 
 
-def compute_sfdr(codes, n_bits, signal_bin=None):
+def compute_sfdr(power, signal_bin=None):
     """
     Compute SFDR (Spurious-Free Dynamic Range) in dBc.
 
     SFDR is the difference in dB between the fundamental tone
     and the largest spur in the spectrum.
 
-    :param codes: Digital output codes from the ADC
-    :type codes: np.ndarray
-    :param n_bits: ADC resolution
-    :type n_bits: int
+    :param power: Linear power spectrum from compute_fft
+    :type power: np.ndarray
     :param signal_bin: FFT bin of fundamental tone, auto-detected if None
     :type signal_bin: int, optional
     :return: SFDR in dBc
     :rtype: float
     """
-    N = len(codes)
-    normalized = codes / (2 ** (n_bits - 1)) - 1.0
-    spectrum = np.fft.rfft(normalized)
-    power = np.abs(spectrum) ** 2
-
     if signal_bin is None:
         signal_bin = np.argmax(power[1:]) + 1
 
