@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 from adc_core import SARADC
 from nonidealities import ClockJitter
-from characterize import compute_sndr, compute_enob
+from characterize import compute_sndr, compute_enob, compute_fft
 
 # Parameters
 N_BITS      = 8
@@ -75,7 +75,8 @@ def run_sweep(adc_class, label_for_adc, **kwargs):
         adc = adc_class(**kwargs, **BASE)
         signal = make_signal(f_in)
         codes, _, _ = adc.convert_signal(signal)
-        sndr, _ = compute_sndr(codes, N_BITS)
+        _, _, power = compute_fft(codes, N_BITS, fs=FS)
+        sndr, sig_bin = compute_sndr(power)
         enobs.append(compute_enob(sndr))
 
     return np.array(enobs)
