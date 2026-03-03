@@ -185,8 +185,8 @@ total = passed + failed
 print(f"\n  {passed}/{total} tests passed")
 
 if failed > 0:
-    print(f"  {failed} test(s) failed — fix before committing\n")
+    print(f"  {failed} test(s) failed, fix before committing\n")
     sys.exit(1)
 else:
-    print("  All tests passed — safe to commit\n")
+    print("  All tests passed, safe to commit\n")
     sys.exit(0)
