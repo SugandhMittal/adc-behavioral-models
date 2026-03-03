@@ -1,12 +1,40 @@
-# SAR-ADC Behavioral Model
+# ADC Behavioral Model
 
-A Python behavioral model of an N-bit **Successive Approximation Register ADC (SAR-ADC)** with non-ideality injection and standard performance characterization.
+A collection of Python behavioral models of different ADC architectures with non-ideality injection and characterization.
 
-Built as a portfolio project to demonstrate analog IC design knowledge. I have also done a similar analysis in Cadence Virtuoso post-layout simulation). But since the Candence project can't be open-source, I implemented in Python to demonstrate understanding.
+Built as a portfolio project to demonstrate analog IC design knowledge. I have also done a similar analysis in Cadence Virtuoso post-layout simulation). 
+But since the Candence project can't be open-source, I implemented in Python to demonstrate understanding.
 
+## Architectures
+
+| Architecture | Status | Key features |
+|---|---|---|
+| SAR-ADC | Complete | 5 non-idealities, Monte Carlo, frequency sweep |
+| Sigma-Delta | In progress | - |
 ---
 
-## What it does
+## Project structure
+
+```
+adc-behavioral-models/
+├── sar/
+│   ├── adc_core.py
+│   ├── nonidealities.py
+│   ├── characterize.py
+│   ├── demo.py
+│   ├── test.py
+│   ├── monte_carlo.py
+│   └── frequency_sweep.py
+├── sigma_delta/
+│   └── (new files)
+└── README.md
+```
+
+## SAR-ADC
+
+An 8-bit Successive Approximation Register ADC behavioral model.
+
+### What it does
 
 Models the complete SAR conversion algorithm and injects five real-world non-idealities:
 
@@ -29,28 +57,16 @@ Also models **overdrive detection** when the input exceeds the ADC range the alg
 
 ---
 
-## Project structure
 
-```
-sar_adc/
-├── adc_core.py         Core SAR-ADC behavioral model (ideal)
-├── nonidealities.py    Five non-ideality models
-├── characterize.py     FFT, SNDR, SFDR, ENOB, DNL, INL computation
-├── demo.py             Run all models, print summary, generate plots
-├── test.py             Unit tests — run before committing
-├── monte_carlo.py      Monte Carlo yield analysis across process corners
-├── frequency_sweep.py  ENOB vs input frequency sweep with jitter limit
-└── README.md
-```
 
 ---
 
-## Quickstart
+### Quickstart
 
 ```bash
 # Clone
-git clone https://github.com/SugandhMittal/sar-adc-model.git
-cd sar-adc-model
+git clone https://github.com/SugandhMittal/adc-behavioral-models.git
+cd adc-behavioral-models/sar
 
 # Install dependencies
 pip install numpy matplotlib
@@ -64,7 +80,7 @@ python demo.py
 
 ---
 
-## Example output
+### Example output
 
 Running `demo.py` compares the ideal ADC against each non-ideality and prints:
 
@@ -91,7 +107,7 @@ And generates a characterization plot showing FFT spectrum, DNL, and INL for all
 
 ---
 
-## Key concepts
+### Key concepts
 
 **Why SAR?**
 The SAR architecture is the dominant ADC topology for medium-speed, medium-resolution applications (8–16 bit, 1 kS/s - 100 MS/s). It is used in microcontrollers, sensor interfaces, and data acquisition systems. Understanding its non-idealities is fundamental to any analog IC design role.
@@ -112,19 +128,19 @@ Clock jitter noise is computed from the instantaneous signal slope using `np.gra
 
 ---
 
-## Monte Carlo Analysis
+### Monte Carlo Analysis
 
 Running `monte_carlo.py` simulates N chips across multiple process corners
 by varying capacitor mismatch sigma. Each seed represents a unique chip
 with its own random mismatch pattern.
 
-### What it computes
+#### What it computes
 For each sigma value across 500 simulated chips:
 - ENOB and SNDR distribution (mean, std, min, max)
 - DNL and INL peak distribution
 - Yield: percentage of chips meeting DNL < 1 LSB (monotonicity criterion)
 
-### Example results
+#### Example results
 ```
    Sigma   ENOB mean   ENOB std   DNL peak    Yield
    0.20%       7.787      0.048      0.891    46.0%
@@ -135,27 +151,27 @@ For each sigma value across 500 simulated chips:
    2.00%       6.572      0.588      2.262     4.4%
 ```
 
-### Key Finding
+#### Key Finding
 Yield drops sharply from 0.5% to 1.0% mismatch. 
 
-### Limitation of Monte Carlo
+#### Limitation of Monte Carlo
 Results below σ = 0.5% are statistically unreliable at N = 500
 iterations due to finite histogram sampling artifacts, the yield variance
 across runs exceeds 4% in this region. The yield sweep plot marks this
 zone explicitly. Above σ = 0.5% results converge to within 1-2%,
 confirming physical accuracy.
 
-## ENOB vs Frequency Sweep
+### ENOB vs Frequency Sweep
 
 Running `frequency_sweep.py` sweeps the input frequency from low to 0.2 × fs
 and plots how ENOB degrades due to clock jitter.
 
-### What it shows
+#### What it shows
 - **Ideal ADC** : ENOB is flat across all frequencies (quantization noise only)
 - **Jitter ADC** : ENOB flat at low frequencies, degrading at higher frequencies
 - **Theoretical limit** : combined effect of quantization + jitter noise, should closely match simulation
 
-### Jitter crossover frequency
+#### Jitter crossover frequency
 For 1 ps jitter at 1 GHz sampling rate the jitter limit crosses the
 quantization limit at:
 
@@ -167,7 +183,7 @@ f_crossover = 1 / (2π × 2^N × t_jitter)
 For 1 GHz input frequency, this is not a limitation since it is above Nyquist frequency. Therefore, we simulate 
 10 ps jitter to properly visualise.
 
-### Limitation in Jitter Time Domain Modelling
+#### Limitation in Jitter Time Domain Modelling
 The time-domain jitter model is valid below 0.2 × fs (200 MHz). Above this,
 jitter noise sidebands alias back near the fundamental in the behavioral model,
 causing SNDR to be artificially overestimated. A frequency-domain jitter model
@@ -176,11 +192,17 @@ would be needed for accurate results near Nyquist which is more complex and limi
 
 ---
 
-## Roadmap (contributions welcome)
+## Sigma-Delta ADC 
+
+- In progress (coming soon)
+
+---
+
+## Roadmap 
 
 - [x] Monte Carlo sweep: ENOB distribution over N mismatch samples
 - [x] ENOB vs. input frequency sweep (jitter limit plot)
-- [ ] Delta-Sigma ADC model for comparison
+- [ ] Sigma-Delta ADC model for comparison
 - [ ] Jupyter notebook version with interactive widgets
 - [ ] Export metrics to CSV for batch analysis
 
