@@ -9,10 +9,9 @@ Implemented Non-idealities:
     - ComparatorOffset  : static input-referred comparator offset
     - CapacitorMismatch : random mismatch in binary-weighted CDAC
     - ReferenceNoise    : thermal noise on the reference voltage
-    - OffsetError       : static offset shift of the transfer curve
 
 Author: Sugandh Mittal
-Date Modified: 25 February 2026
+Date Modified: 03 March 2026
 """
 
 import numpy as np
