@@ -143,20 +143,19 @@ print(f"  DEBUG codes range: {codes_ideal.min()} to {codes_ideal.max()}")
 print(f"  DEBUG unique codes: {len(np.unique(codes_ideal))}")
 
 # FFT
-freqs, power_db = compute_fft(codes_ideal, n_bits=8, fs=10e6)
+freqs, power_db, power = compute_fft(codes_ideal, n_bits=8, fs=10e6)
 check("FFT freqs length",        len(freqs) == N // 2 + 1)
 check("FFT max frequency",       abs(freqs[-1] - 5e6) < 1)
 check("FFT power has peak",      np.max(power_db) > -20)
 
 # SNDR
-sndr, sig_bin = compute_sndr(codes_ideal, n_bits=8)
+sndr, sig_bin = compute_sndr(power)
 check("SNDR > 40 dB for ideal",  sndr > 40)
 check("SNDR < 60 dB for 8-bit",  sndr < 60)
 check("Signal bin detected",     sig_bin > 0)
-sndr, sig_bin = compute_sndr(codes_ideal, n_bits=8)
-print(f"  DEBUG SNDR: {sndr:.2f} dB, sig_bin: {sig_bin}")
+
 # SFDR
-sfdr = compute_sfdr(codes_ideal, n_bits=8)
+sfdr = compute_sfdr(power)
 check("SFDR > SNDR",             sfdr > sndr)
 check("SFDR reasonable range",   20 < sfdr < 100)
 
@@ -173,8 +172,10 @@ check("Ideal DNL peak < 1 LSB",   np.max(np.abs(dnl)) < 1.0)
 check("Ideal INL peak < 1 LSB",   np.max(np.abs(inl)) < 1.0)
 
 # Non-idealities degrade SNDR
-sndr_tn, _ = compute_sndr(codes_tn, n_bits=8)
-sndr_cm, _ = compute_sndr(codes_cm, n_bits=8)
+_, _, power_tn = compute_fft(codes_tn, n_bits=8)
+sndr_tn, _ = compute_sndr(power_tn)
+_, _, power_cm = compute_fft(codes_cm, n_bits=8)
+sndr_cm, _ = compute_sndr(power_cm)
 check("ThermalNoise degrades SNDR",    sndr_tn <= sndr + 1)
 check("CapacitorMismatch degrades SNDR", sndr_cm < sndr)
 

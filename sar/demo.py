@@ -29,14 +29,14 @@ from characterize import (compute_fft, compute_sndr, compute_sfdr,
 # Parameters
 N_BITS    = 8
 VREF      = 1.0
-FS        = 10e6
+FS        = 10e6 # (10 MHz)
 N_SAMPLES = 4096
 M_CYCLES  = 127
 F_IN      = M_CYCLES * FS / N_SAMPLES
 AMPLITUDE = 0.45
 DC_OFFSET = 0.5
 
-COLORS = ['#2196F3', '#FF5722', '#4CAF50', '#9C27B0', '#FF9800', '#00BCD4']
+COLORS = ['blue', 'orange', 'green', 'purple', 'gold', 'cyan']
 BASE   = dict(n_bits=N_BITS, vref=VREF, fs=FS)
 
 
@@ -47,10 +47,11 @@ def make_signal():
 
 def run_adc(adc, signal):
     codes, _, _ = adc.convert_signal(signal)
-    sndr, sig_bin = compute_sndr(codes, N_BITS)
+    freqs, power_db, power = compute_fft(codes, N_BITS, fs=FS)
+    sndr, sig_bin = compute_sndr(power)
     return {
         "sndr"    : sndr,
-        "sfdr"    : compute_sfdr(codes, N_BITS, signal_bin=sig_bin),
+        "sfdr"    : compute_sfdr(power, sig_bin),
         "enob"    : compute_enob(sndr),
         "fft"     : compute_fft(codes, N_BITS, fs=FS),
         "dnl_inl" : compute_dnl_inl(adc),
@@ -58,7 +59,7 @@ def run_adc(adc, signal):
 
 
 def plot_col(gs, col, name, r, color):
-    freqs, power_db = r["fft"]
+    freqs, power_db, power = r["fft"]
     dnl, inl        = r["dnl_inl"]
     codes_axis      = np.arange(len(dnl))
 
