@@ -39,6 +39,7 @@ sar_adc/
 ├── demo.py             Run all models, print summary, generate plots
 ├── test.py             Unit tests — run before committing
 ├── monte_carlo.py      Monte Carlo yield analysis across process corners
+├── frequency_sweep.py  ENOB vs input frequency sweep with jitter limit
 └── README.md
 ```
 
@@ -134,14 +135,44 @@ For each sigma value across 500 simulated chips:
    2.00%       6.572      0.588      2.262     4.4%
 ```
 
-### Key finding
+### Key Finding
 Yield drops sharply from 0.5% to 1.0% mismatch. 
 
-Note: Results below σ = 0.5% are statistically unreliable at N = 500
+### Limitation of Monte Carlo
+Results below σ = 0.5% are statistically unreliable at N = 500
 iterations due to finite histogram sampling artifacts, the yield variance
 across runs exceeds 4% in this region. The yield sweep plot marks this
 zone explicitly. Above σ = 0.5% results converge to within 1-2%,
 confirming physical accuracy.
+
+## ENOB vs Frequency Sweep
+
+Running `frequency_sweep.py` sweeps the input frequency from low to 0.2 × fs
+and plots how ENOB degrades due to clock jitter.
+
+### What it shows
+- **Ideal ADC** : ENOB is flat across all frequencies (quantization noise only)
+- **Jitter ADC** : ENOB flat at low frequencies, degrading at higher frequencies
+- **Theoretical limit** : combined effect of quantization + jitter noise, should closely match simulation
+
+### Jitter crossover frequency
+For 1 ps jitter at 1 GHz sampling rate the jitter limit crosses the
+quantization limit at:
+
+```
+f_crossover = 1 / (2π × 2^N × t_jitter)
+            = 1 / (2π × 256 × 1e-12)
+            ≈ 621 MHz
+```
+For 1 GHz input frequency, this is not a limitation since it is above Nyquist frequency. Therefore, we simulate 
+10 ps jitter to properly visualise.
+
+### Limitation in Jitter Time Domain Modelling
+The time-domain jitter model is valid below 0.2 × fs (200 MHz). Above this,
+jitter noise sidebands alias back near the fundamental in the behavioral model,
+causing SNDR to be artificially overestimated. A frequency-domain jitter model
+would be needed for accurate results near Nyquist which is more complex and limited to standard signals
+
 
 ---
 
@@ -157,10 +188,10 @@ confirming physical accuracy.
 
 ## Acknowledgements
 
-Core behavioral model, non-ideality physics, characterization algorithms,
-and Monte Carlo analysis written independently. Visualization scripts
-(`demo.py`, `monte_carlo.py`) and test suite (`test.py`) generated with
-AI assistance (Claude, Anthropic).
+Core behavioral model, non-ideality physics, characterization algorithms, 
+Monte Carlo analysis and ENOB vs Frequency Sweep are written independently. 
+Visualization scripts (`demo.py`, `monte_carlo.py`) and test suite (`test.py`) 
+generated with AI assistance (Claude, Anthropic).
 
 ---
 
