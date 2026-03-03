@@ -11,14 +11,14 @@ Usage:
     python monte_carlo.py
 
 Author: Sugandh Mittal
-Date Modified: 27 February 2026
+Date Modified: 27 February 2026 (Edit 1: 03 March 2026)
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from nonidealities import CapacitorMismatch
-from characterize import compute_sndr, compute_enob, compute_dnl_inl
+from characterize import compute_sndr, compute_enob, compute_dnl_inl, compute_fft
 
 # Parameters
 N_BITS       = 8
@@ -59,7 +59,8 @@ def run_sigma(sigma, signal):
             0, sigma, size=N_BITS
         )
         codes, _, _ = adc.convert_signal(signal)
-        sndr, _     = compute_sndr(codes, N_BITS)
+        _, _, power = compute_fft(codes, N_BITS, fs=FS)
+        sndr, sig_bin     = compute_sndr(power)
         dnl, inl    = compute_dnl_inl(adc)
 
         metrics["sndr"].append(sndr)
@@ -113,8 +114,8 @@ def plot_distributions(all_results):
     :param all_results: Dict mapping sigma to metrics dict
     :type all_results: dict
     """
-    colors = ['#2196F3', '#03A9F4', '#4CAF50', '#8BC34A',
-              '#FF9800', '#FF5722', '#E91E63', '#9C27B0', '#673AB7']
+    colors = ['blue', 'lightblue', 'green', 'lightgreen',
+              'orange', 'darkorange', 'pink', 'purple', 'darkmagenta']
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     fig.suptitle(f"Monte Carlo Distributions for {N_BITS}-bit SAR-ADC")
@@ -130,19 +131,18 @@ def plot_distributions(all_results):
         axes[1].hist(r["dnl_peak"], bins=30, color=color, alpha=0.4,
                      label=label, edgecolor='none')
 
-    axes[0].set_xlabel("ENOB (bits)", fontsize=10)
-    axes[0].set_ylabel("Number of chips", fontsize=10)
-    axes[0].set_title("ENOB Distribution", fontsize=10)
+    axes[0].set_xlabel("ENOB (bits)")
+    axes[0].set_ylabel("Number of chips")
+    axes[0].set_title("ENOB Distribution")
     axes[0].legend()
-    axes[0].grid(True, alpha=0.3)
+    axes[0].grid(alpha=0.3)
 
-    axes[1].axvline(1.0, color='red',
-                    linestyle='--', label='DNL = 1 LSB limit')
+    axes[1].axvline(1.0, color='red', linestyle='--', label='DNL = 1 LSB limit')
     axes[1].set_xlabel("DNL Peak (LSB)")
     axes[1].set_ylabel("Number of chips")
     axes[1].set_title("DNL Peak Distribution")
     axes[1].legend()
-    axes[1].grid(True, alpha=0.3)
+    axes[1].grid(alpha=0.3)
 
     plt.tight_layout()
     plt.savefig('monte_carlo_distributions.png', dpi=150, bbox_inches='tight')
@@ -168,12 +168,10 @@ def plot_yield_sweep(all_results):
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     fig.suptitle(f"Yield & ENOB vs Mismatch: {N_BITS}-bit SAR-ADC")
 
-    axes[0].plot(sigmas * 100, yields, 'o-', color='#2196F3',
-                 linewidth=2, markersize=7, markerfacecolor='white',
-                 markeredgewidth=2, label='Simulated yield')
+    axes[0].plot(sigmas * 100, yields, 'o-', color='skyblue', markerfacecolor='white', label='Simulated yield')
     axes[0].axvspan(0, 0.5, alpha=0.08, color='red',
                     label='Statistically unreliable (σ < 0.5%)')
-    axes[0].axvline(0.5, color='red', linewidth=1.0, linestyle='--', alpha=0.6)
+    axes[0].axvline(0.5, color='red', linestyle='--', alpha=0.6)
     axes[0].set_xlabel("Capacitor Mismatch σ (%)")
     axes[0].set_ylabel("Yield: DNL < 1 LSB (%)")
     axes[0].set_title("Yield vs Mismatch")
@@ -183,21 +181,18 @@ def plot_yield_sweep(all_results):
     axes[0].grid(True, alpha=0.3)
 
     # ENOB mean ± std curve
-    axes[1].plot(sigmas * 100, enob_means, 'o-', color='#FF5722',
-                 linewidth=2, markersize=7, markerfacecolor='white',
-                 markeredgewidth=2, label='Mean ENOB')
+    axes[1].plot(sigmas * 100, enob_means, 'o-', color='orange', markerfacecolor='white', label='Mean ENOB')
     axes[1].fill_between(sigmas * 100,
                           enob_means - enob_stds,
                           enob_means + enob_stds,
-                          alpha=0.2, color='#FF5722', label='±1σ')
-    axes[1].axhline(N_BITS - 0.5, color='green', linestyle='--',
-                    linewidth=1.0, label=f'{N_BITS - 0.5} bits target')
+                          alpha=0.2, color='orange', label='±1σ')
+    axes[1].axhline(N_BITS - 0.5, color='green', linestyle='--', label=f'{N_BITS - 0.5} bits target')
     axes[1].set_xlabel("Capacitor Mismatch σ (%)")
     axes[1].set_ylabel("ENOB (bits)")
     axes[1].set_title("ENOB vs Mismatch")
     axes[1].set_xlim(0, max(sigmas * 100) * 1.1)
     axes[1].legend()
-    axes[1].grid(True, alpha=0.3)
+    axes[1].grid(alpha=0.3)
 
     plt.tight_layout()
     plt.savefig('yield_sweep.png', dpi=150, bbox_inches='tight')
