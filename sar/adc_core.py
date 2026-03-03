@@ -7,7 +7,7 @@ It models the ideal behaviour using capacitive DAC and a comparator.
 The non-idealities are added in nonidealities.py which can be modified according to the parameters.
 
 Author: Sugandh Mittal
-Date Modified: 24 February 2026
+Date Modified: 3 March 2026
 """
 
 import numpy as np
@@ -46,9 +46,9 @@ class SARADC:
         - Move to next bit
 
         :param v_in: Input voltage to convert in volts
-        :type v_in: float or np.ndarray
+        :type v_in: np.ndarray
         :return: Digital output code
-        :rtype: int or np.ndarray
+        :rtype: np.ndarray
         """
 
         v_in = np.atleast_1d(np.array(v_in, dtype=float))
@@ -98,6 +98,7 @@ class SARADC:
     def convert_signal(self, signal):
         """
         Convert an array of time domain samples to digitized codes.
+        (calls conversion() on all the elements of array together)
 
         :param signal: Array of input voltages in time domain
         :type signal: np.ndarray
